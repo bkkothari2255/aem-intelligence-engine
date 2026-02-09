@@ -6,10 +6,15 @@ import sys
 import aiofiles
 from typing import List, Dict, Any
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuration
-AEM_BASE_URL = "http://localhost:4502"
-AUTH = ("admin", "admin")  # Default AEM credentials
+AEM_BASE_URL = os.getenv("AEM_BASE_URL", "http://localhost:4502")
+AEM_USER = os.getenv("AEM_USER", "admin")
+AEM_PASSWORD = os.getenv("AEM_PASSWORD", "admin")
+AUTH = (AEM_USER, AEM_PASSWORD)
 QUERY_BUILDER_URL = f"{AEM_BASE_URL}/bin/querybuilder.json"
 OUTPUT_FILE = "output.jsonl"
 

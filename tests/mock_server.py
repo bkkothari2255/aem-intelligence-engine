@@ -1,5 +1,10 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+PORT = int(os.getenv("LISTENER_PORT", 8000))
 
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -16,9 +21,9 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Mock Enrichment Server is Running. Waiting for POST updates...")
 
 if __name__ == "__main__":
-    print("Starting mock enrichment server on port 8000...")
+    print(f"Starting mock enrichment server on port {PORT}...")
     print("Press Ctrl+C to stop.")
-    httpd = HTTPServer(('localhost', 8000), SimpleHandler)
+    httpd = HTTPServer(('localhost', PORT), SimpleHandler)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

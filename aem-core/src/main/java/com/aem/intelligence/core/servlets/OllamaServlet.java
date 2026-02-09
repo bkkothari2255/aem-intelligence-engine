@@ -18,18 +18,42 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
 @Component(service = Servlet.class, property = {
     "sling.servlet.paths=/bin/ollama/generate",
     "sling.servlet.methods=POST"
 })
+@Designate(ocd = OllamaServlet.Config.class)
 public class OllamaServlet extends SlingAllMethodsServlet {
 
+    @ObjectClassDefinition(name = "AEM Intelligence - Ollama Servlet", description = "Configuration for Ollama Bridge")
+    public @interface Config {
+        @AttributeDefinition(name = "Ollama API URL", description = "URL of the Ollama generation endpoint")
+        String ollama_url() default "http://localhost:11434/api/generate";
+        
+        @AttributeDefinition(name = "Model Name", description = "Default model to use")
+        String model_name() default "llama3.1";
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(OllamaServlet.class);
-    private static final String OLLAMA_API_URL = "http://localhost:11434/api/generate";
+    private String ollamaUrl;
+    private String modelName;
+    
     private static final HttpClient client = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .connectTimeout(Duration.ofSeconds(10))
             .build();
+
+    @Activate
+    protected void activate(Config config) {
+        this.ollamaUrl = config.ollama_url();
+        this.modelName = config.model_name();
+        LOG.info("OllamaServlet activated. URL: {}, Model: {}", ollamaUrl, modelName);
+    }
 
     @Override
     protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
@@ -45,12 +69,12 @@ public class OllamaServlet extends SlingAllMethodsServlet {
 
         try {
             JsonObject requestPayload = new JsonObject();
-            requestPayload.addProperty("model", "llama3.1");
+            requestPayload.addProperty("model", this.modelName); // Use configured model
             requestPayload.addProperty("prompt", prompt);
             requestPayload.addProperty("stream", false);
 
             HttpRequest httpRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(OLLAMA_API_URL))
+                    .uri(URI.create(this.ollamaUrl)) // Use configured URL
                     .timeout(Duration.ofMinutes(2)) // LLMs can be slow
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(requestPayload.toString(), StandardCharsets.UTF_8))

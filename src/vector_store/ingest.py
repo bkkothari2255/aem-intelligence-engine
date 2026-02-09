@@ -3,12 +3,15 @@ from sentence_transformers import SentenceTransformer
 import json
 import os
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuration
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "./chroma_db")
-COLLECTION_NAME = "aem_content"
+COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "aem_content")
 INPUT_FILE = os.getenv("INPUT_FILE", "output.jsonl")
-MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
 BATCH_SIZE = 50
 
 def main():

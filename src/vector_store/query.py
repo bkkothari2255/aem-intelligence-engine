@@ -3,11 +3,14 @@ from sentence_transformers import SentenceTransformer
 import sys
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuration
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "./chroma_db")
-COLLECTION_NAME = "aem_content"
-MODEL_NAME = "all-MiniLM-L6-v2"
+COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "aem_content")
+MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
 
 def main():
     query = "WKND"

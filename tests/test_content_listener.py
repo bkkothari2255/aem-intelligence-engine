@@ -4,11 +4,18 @@ import time
 import httpx
 import sys
 import socket
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuration
-PORT = 8000
-AEM_UPDATE_URL = "http://localhost:4502/content/wknd/us/en/jcr:content"
-AUTH = ("admin", "admin")
+PORT = int(os.getenv("LISTENER_PORT", 8000))
+AEM_BASE_URL = os.getenv("AEM_BASE_URL", "http://localhost:4502")
+AEM_USER = os.getenv("AEM_USER", "admin")
+AEM_PASSWORD = os.getenv("AEM_PASSWORD", "admin")
+AEM_UPDATE_URL = f"{AEM_BASE_URL}/content/wknd/us/en/jcr:content"
+AUTH = (AEM_USER, AEM_PASSWORD)
 
 received_event = None
 server_error = None
