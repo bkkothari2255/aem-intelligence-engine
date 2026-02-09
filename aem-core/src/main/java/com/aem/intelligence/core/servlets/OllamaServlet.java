@@ -45,7 +45,7 @@ public class OllamaServlet extends SlingAllMethodsServlet {
 
         try {
             JsonObject requestPayload = new JsonObject();
-            requestPayload.addProperty("model", "llama3.2");
+            requestPayload.addProperty("model", "llama3.1");
             requestPayload.addProperty("prompt", prompt);
             requestPayload.addProperty("stream", false);
 
