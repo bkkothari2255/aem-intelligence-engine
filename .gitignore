@@ -28,6 +28,7 @@ dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.properties
+**/.m2/repository
 
 # AEM Logs
 logs/
