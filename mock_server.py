@@ -17,5 +17,13 @@ class SimpleHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     print("Starting mock enrichment server on port 8000...")
+    print("Press Ctrl+C to stop.")
     httpd = HTTPServer(('localhost', 8000), SimpleHandler)
-    httpd.serve_forever()
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print("\nStopping mock server...")
+        httpd.server_close()
+        print("Server stopped.")
