@@ -9,6 +9,13 @@ class SimpleHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        self.wfile.write(b"Mock Enrichment Server is Running. Waiting for POST updates...")
+
 if __name__ == "__main__":
     print("Starting mock enrichment server on port 8000...")
-    HTTPServer(('localhost', 8000), SimpleHandler).serve_forever()
+    httpd = HTTPServer(('localhost', 8000), SimpleHandler)
+    httpd.serve_forever()
