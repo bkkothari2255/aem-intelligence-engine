@@ -1,0 +1,14 @@
+<'cq'='http://www.day.com/jcr/cq/1.0'>
+<'jcr'='http://www.jcp.org/jcr/1.0'>
+<'nt'='http://www.jcp.org/jcr/nt/1.0'>
+<'rep'='internal'>
+
+[cq:ClientLibraryFolder] > nt:folder
+  orderable
+  + * (nt:base) = nt:base version
+  - categories (string) multiple
+  - dependencies (string) multiple
+  - embed (string) multiple
+  - channels (string) multiple
+  - allowProxy (boolean)
+  - longCacheKey (string)
