@@ -10,21 +10,21 @@ It consists of an **AEM OSGi Bundle** for real-time listeners and AI integration
 *   **Vector Database Integration**: Automated ingestion of AEM content into **ChromaDB** using `sentence-transformers` for semantic search.
 *   **Real-time Content Listener**: AEM OSGi service that detects content changes (`ADDED`, `MODIFIED`) and pushes updates to the Intelligence Engine immediately.
 *   **Ollama Bridge Servlet**: internal AEM Servlet (`/bin/ollama/generate`) to relay prompts to a local LLM (Ollama), enabling AI features directly within AEM components.
+*   **Intelligent Chat UI**: A React Spectrum-based chat interface embedded in AEM that streams RAG responses from the Intelligence Engine.
 *   **RAG Ready**: Infrastructure to support Retrieval-Augmented Generation by combining AEM content with LLM capabilities.
 
 ## 📂 Project Structure
 
 ```
 .
-├── aem-core/               # AEM Maven Project (OSGi Bundle)
-│   ├── src/main/java/      # Java Source (ContentChangeListener, OllamaServlet)
+├── aem-core/               # AEM Maven Project (OSGi Bundle & UI)
+│   ├── ui.frontend/        # React Chat Application (Vite)
+│   ├── ui.apps/            # AEM ClientLibs & Components
 │   └── pom.xml             # Maven Configuration
 ├── src/                    # Python Intelligence Engine
 │   ├── crawler/            # AEM Content Crawler
 │   └── vector_store/       # ChromaDB Ingestion & Querying
 ├── tests/                  # Verification Scripts & Mocks
-│   ├── mock_server.py      # Python server to mimic Intelligence API
-│   └── test_*.py           # Integration tests
 ├── requirements.txt        # Python dependencies
 └── README.md               # This file
 ```
@@ -36,6 +36,7 @@ It consists of an **AEM OSGi Bundle** for real-time listeners and AI integration
 *   **Maven 3.9+**.
 *   **Python 3.11+**.
 *   **Ollama** (running locally with `llama3.1` model).
+*   **Node.js v20+** (for UI Frontend).
 
 ## ⚡ Setup & Installation
 
@@ -43,20 +44,45 @@ It consists of an **AEM OSGi Bundle** for real-time listeners and AI integration
 
 Initialize the Python environment for the Intelligence Engine.
 
+**Automated:**
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. AEM Bundle Deployment
+**Manual (if EPERM issues occur):**
+```bash
+python3.11 -m venv venv_manual
+source venv_manual/bin/activate
+pip install fastapi uvicorn chromadb sentence-transformers python-dotenv httpx pydantic aiofiles
+```
 
-Build and deploy the OSGi bundle to your local AEM instance.
+### 2. AEM Deployment
 
+**Standard Deployment:**
 ```bash
 # Ensure AEM is running on localhost:4502
 sh .agent/skills/deploy_aem/deploy-aem.sh
 ```
+
+**Manual Deployment (If permission errors occur):**
+1.  **Build Frontend**:
+    ```bash
+    cd aem-core/ui.frontend
+    npm install --legacy-peer-deps
+    npm run build
+    ```
+2.  **Copy Artifacts**:
+    ```bash
+    cp dist/assets/*.js ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/clientlibs/clientlib-react/js/app.js
+    cp dist/assets/*.css ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/clientlibs/clientlib-react/css/index.css
+    ```
+3.  **Deploy AEM Package**:
+    ```bash
+    cd ../ui.apps
+    mvn clean install -PautoInstallPackage
+    ```
 
 ### 3. Ollama Setup
 
@@ -68,6 +94,13 @@ ollama pull llama3.1
 ```
 
 ## 📖 Usage
+
+### Python Backend Service (Chat API)
+Start the backend service to handle chat requests:
+```bash
+python src/crawler/live_sync_service.py
+```
+*   API runs on `http://localhost:8000`.
 
 ### Data Ingestion (Manual)
 

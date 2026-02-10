@@ -1,42 +1,65 @@
 # AEM Intelligence Engine - Setup & Usage Guide
 
 ## Overview
-This project integrates Adobe Experience Manager (AEM) with a Vector Database (ChromaDB) to provide real-time content enrichment and semantic search capabilities.
+This project integrates Adobe Experience Manager (AEM) with a Vector Database (ChromaDB) and local LLMs (Ollama) to provide real-time content enrichment, semantic search, and an Intelligent Chat UI.
 
 ## Prerequisites
 - **Python 3.11+**
-- **Maven 3.8+**
-- **Java 11+** (for AEM)
+- **Node.js v20+**
+- **Maven 3.9+**
+- **Java 21** (for AEM)
 - **AEM instance** running locally on port 4502 (default)
+- **Ollama** running locally
 
 ## 1. Installation
 
 ### Python Environment
-We use a dedicated virtual environment (`venv_chroma`) to manage dependencies.
+We use a virtual environment to manage dependencies.
 
+**Automated Setup:**
 ```bash
-# Create and activate virtual environment
-python3.11 -m venv venv_chroma
-source venv_chroma/bin/activate
-
-# Install dependencies
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
-# Note: real-time service required manually installing:
-pip install fastapi uvicorn python-multipart chromadb sentence-transformers httpx aiofiles python-dotenv langchain-text-splitters
 ```
 
-### AEM Package
-Build and deploy the `aem-core` bundle which contains the Content Listener.
-
+**Manual Setup (If EPERM issues occur):**
 ```bash
-cd aem-core
-mvn clean install -PautoInstallBundle
+python3.11 -m venv venv_manual
+source venv_manual/bin/activate
+pip install fastapi uvicorn python-multipart chromadb sentence-transformers httpx aiofiles python-dotenv langchain-text-splitters pydantic
 ```
+
+### AEM Package Deployment
+
+**Standard Deployment:**
+```bash
+sh .agent/skills/deploy_aem/deploy-aem.sh
+```
+
+**Manual Deployment (If permission errors occur):**
+1.  **Build Frontend**:
+    ```bash
+    cd aem-core/ui.frontend
+    npm install --legacy-peer-deps
+    npm run build
+    ```
+2.  **Copy Artifacts Manually**:
+    ```bash
+    # Run from aem-core/ui.frontend
+    cp dist/assets/*.js ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/clientlibs/clientlib-react/js/app.js
+    cp dist/assets/*.css ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/clientlibs/clientlib-react/css/index.css
+    ```
+3.  **Deploy to AEM**:
+    ```bash
+    cd ../ui.apps
+    mvn clean install -PautoInstallPackage
+    ```
 
 ## 2. Configuration
 
 ### Environment Variables
-Create a `.env` file in the root directory:
+Create a `.env` file in the project root:
 
 ```env
 AEM_BASE_URL=http://localhost:4502
@@ -58,41 +81,31 @@ Configure AEM to send events to the Python service.
 
 ## 3. Usage
 
-### Starting the Real-Time Sync Service
-This service listens for AEM changes and updates the vector store immediately.
+### Starting the Intelligence Service
+This service handles Chat API requests and Real-Time sync.
 
 ```bash
-# Terminal 1
-source venv_chroma/bin/activate
+# Activate your venv first
+source venv_manual/bin/activate  # or venv/bin/activate
 python src/crawler/live_sync_service.py
 ```
-*Expected output:* `INFO:     Uvicorn running on http://0.0.0.0:8000`
+*   API runs on: `http://localhost:8000`
+*   Chat Endpoint: `POST /api/v1/chat`
 
-### Full Crawl (Backfill)
+### Data Ingestion (Backfill)
 To index all existing content:
 
 ```bash
-# Terminal 2
-source venv_chroma/bin/activate
 python src/crawler/crawler.py
 python src/vector_store/ingest.py
 ```
 
-## 4. Testing
-Run unit tests to verify the service logic without an active AEM instance.
+### Intelligent Chat UI
+1.  Navigate to any AEM page where the Chat Component is added.
+2.  Or find the component in the AEM Sidekick under "AEM Intelligence" group.
+3.  Ask questions like "What is WKND?".
 
-```bash
-source venv_chroma/bin/activate
-# Install test dependencies if needed
-pip install pytest httpx
-# Run tests
-pytest tests/test_live_sync_service.py
-```
-
-## Troubleshooting
-- **Permission Errors**: If you encounter `Operation not permitted` on Mac, run:
-  ```bash
-  chmod -R 755 venv_chroma
-  xattr -rc venv_chroma
-  ```
+## 4. Troubleshooting
+- **Permission Errors**: If you encounter `Operation not permitted` on Mac during build, use the **Manual Deployment** steps above.
 - **Port Conflicts**: Ensure port 8000 is free or change `PORT` in `.env` (and update AEM config).
+- **Chat Not Responding**: Ensure `live_sync_service.py` is running and `Ollama` is serving content.
