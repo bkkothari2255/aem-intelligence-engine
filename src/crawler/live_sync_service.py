@@ -64,11 +64,75 @@ async def lifespan(app: FastAPI):
     if state.http_client:
         await state.http_client.aclose()
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(lifespan=lifespan)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:4502"],  # React app & AEM
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class WebhookPayload(BaseModel):
     path: str
     event: Optional[str] = None
+
+class ChatPayload(BaseModel):
+    message: str
+
+@app.post("/api/v1/chat")
+async def chat_endpoint(payload: ChatPayload):
+    try:
+        query_text = payload.message
+        logger.info(f"Received chat request: {query_text}")
+        
+        # 1. Generate embedding for the query
+        query_embedding = state.model.encode(query_text).tolist()
+        
+        # 2. Query ChromaDB
+        results = state.collection.query(
+            query_embeddings=[query_embedding],
+            n_results=3,
+            include=["documents", "metadatas", "distances"]
+        )
+        
+        # 3. Format response
+        # unique_documents = set()
+        formatted_context = []
+        
+        if results['documents'] and results['documents'][0]:
+            for i, doc in enumerate(results['documents'][0]):
+                meta = results['metadatas'][0][i] if results['metadatas'] else {}
+                source = meta.get("source", "Unknown")
+                formatted_context.append(f"Source: {source}\nContent: {doc}")
+        
+        context_str = "\n\n".join(formatted_context)
+        
+        # For now, return the retrieved context as the "answer" to prove RAG works
+        # Later we will pass this `context_str` + `query_text` to Ollama
+        
+        # Simple cleanup of AEM noise
+        import re
+        context_str = re.sub(r'aem-GridColumn--[a-z0-9-]+', '', context_str)
+        context_str = re.sub(r'aem-GridColumn', '', context_str)
+        
+        response_text = f"I found some relevant information in the AEM content:\n\n{context_str}"
+        
+        if not formatted_context:
+            response_text = "I couldn't find any relevant information in the AEM content to answer your question."
+
+        return {
+            "role": "assistant",
+            "content": response_text
+        }
+
+    except Exception as e:
+        logger.error(f"Error in chat endpoint: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/v1/sync")
 async def sync_page(payload: WebhookPayload):
