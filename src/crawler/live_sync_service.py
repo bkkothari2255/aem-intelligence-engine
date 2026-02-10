@@ -7,16 +7,15 @@ from pydantic import BaseModel
 import uvicorn
 from contextlib import asynccontextmanager
 import chromadb
-from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 
 # Import usage from existing modules
-# We need to add src to sys.path or use relative imports if running as module
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from src.crawler.crawler import process_page
-from src.vector_store.ingest import upsert_batch
+# from src.vector_store.ingest import upsert_batch # Removed to avoid circular import or duplication
+from src.utils.embeddings import get_embedding_model, compute_embeddings, compute_query_embedding
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -27,7 +26,6 @@ load_dotenv()
 # Configuration
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "./chroma_db")
 COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "aem_content")
-MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
 AEM_BASE_URL = os.getenv("AEM_BASE_URL", "http://localhost:4502")
 
 # Global state
@@ -50,8 +48,8 @@ async def lifespan(app: FastAPI):
     state.collection = state.chroma_client.get_or_create_collection(name=COLLECTION_NAME)
     
     # Initialize Model
-    logger.info(f"Loading embedding model {MODEL_NAME}...")
-    state.model = SentenceTransformer(MODEL_NAME)
+    logger.info("Loading embedding model...")
+    state.model = get_embedding_model()
     
     # Initialize HTTP Client for crawler
     import httpx
@@ -91,7 +89,7 @@ async def chat_endpoint(payload: ChatPayload):
         logger.info(f"Received chat request: {query_text}")
         
         # 1. Generate embedding for the query
-        query_embedding = state.model.encode(query_text).tolist()
+        query_embedding = compute_query_embedding(state.model, query_text)
         
         # 2. Query ChromaDB
         results = state.collection.query(
@@ -184,7 +182,10 @@ async def sync_page(payload: WebhookPayload):
         if docs:
             # We reuse the logic from verify/ingest, but we can call upsert directly
             # since we have the objects loaded in memory
-            embeddings = state.model.encode(docs).tolist()
+            
+            # Use shared compute logic
+            embeddings = compute_embeddings(state.model, docs)
+            
             state.collection.upsert(
                 ids=ids,
                 documents=docs,

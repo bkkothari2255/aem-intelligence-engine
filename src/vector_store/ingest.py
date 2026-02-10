@@ -1,9 +1,10 @@
 import chromadb
-from sentence_transformers import SentenceTransformer
 import json
 import os
 import sys
 from dotenv import load_dotenv
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+from src.utils.embeddings import get_embedding_model, compute_embeddings
 
 load_dotenv()
 
@@ -11,7 +12,6 @@ load_dotenv()
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "./chroma_db")
 COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "aem_content")
 INPUT_FILE = os.getenv("INPUT_FILE", "output.jsonl")
-MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
 BATCH_SIZE = 50
 
 def main():
@@ -23,8 +23,7 @@ def main():
     client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
     collection = client.get_or_create_collection(name=COLLECTION_NAME)
 
-    print(f"Loading embedding model '{MODEL_NAME}'...")
-    model = SentenceTransformer(MODEL_NAME)
+    model = get_embedding_model()
 
     print(f"Reading '{INPUT_FILE}' and ingesting...")
     
@@ -78,7 +77,7 @@ def main():
     print(f"Ingestion complete. Total chunks: {count}")
 
 def upsert_batch(collection, model, docs, ids, metadatas):
-    embeddings = model.encode(docs).tolist()
+    embeddings = compute_embeddings(model, docs)
     collection.upsert(
         ids=ids,
         documents=docs,

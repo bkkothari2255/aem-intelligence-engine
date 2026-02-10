@@ -1,16 +1,16 @@
 import chromadb
-from sentence_transformers import SentenceTransformer
 import sys
-
 import os
 from dotenv import load_dotenv
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+from src.utils.embeddings import get_embedding_model, compute_query_embedding
 
 load_dotenv()
 
 # Configuration
 CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "./chroma_db")
 COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "aem_content")
-MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
 
 def main():
     query = "WKND"
@@ -26,15 +26,20 @@ def main():
         print(f"Error accessing collection: {e}")
         return
 
-    model = SentenceTransformer(MODEL_NAME)
-    query_embedding = model.encode([query]).tolist()
+    model = get_embedding_model()
+    # Compute query embedding (handles OpenAI/Local switch)
+    query_embedding = compute_query_embedding(model, query)
 
     results = collection.query(
-        query_embeddings=query_embedding,
+        query_embeddings=[query_embedding],
         n_results=3
     )
 
     print("\nResults:")
+    if not results['documents']:
+        print("No results found.")
+        return
+
     for i, doc in enumerate(results['documents'][0]):
         meta = results['metadatas'][0][i]
         dist = results['distances'][0][i]

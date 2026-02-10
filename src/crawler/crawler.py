@@ -18,46 +18,18 @@ AUTH = (AEM_USER, AEM_PASSWORD)
 QUERY_BUILDER_URL = f"{AEM_BASE_URL}/bin/querybuilder.json"
 OUTPUT_FILE = "output.jsonl"
 
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 # Text Splitter Configuration
-class SimpleTextSplitter:
-    def __init__(self, chunk_size=650, chunk_overlap=65):
-        self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
-
-    def split_text(self, text: str) -> List[str]:
-        if not text:
-            return []
-        
-        chunks = []
-        start = 0
-        text_len = len(text)
-        
-        while start < text_len:
-            end = start + self.chunk_size
-            
-            # If we're not at the end, try to find a nice break point
-            if end < text_len:
-                # Look for paragraph break
-                last_break = text.rfind('\n', start, end)
-                if last_break == -1 or last_break < start + (self.chunk_size // 2):
-                    # Look for sentence break
-                    last_break = text.rfind('. ', start, end)
-                
-                if last_break != -1 and last_break > start:
-                    end = last_break + 1  # Include the break character
-            
-            chunks.append(text[start:end].strip())
-            start = end - self.chunk_overlap
-            
-            # Prevent infinite loops if overlap >= chunk size (shouldn't happen with defaults)
-            if start >= end:
-                start = end
-                
-        return [c for c in chunks if c]
-
 CHUNK_SIZE = 650
 CHUNK_OVERLAP = 65
-splitter = SimpleTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=CHUNK_SIZE,
+    chunk_overlap=CHUNK_OVERLAP,
+    length_function=len,
+    is_separator_regex=False,
+)
 
 async def search_pages(client: httpx.AsyncClient, root_path: str = "/content") -> List[str]:
     """
