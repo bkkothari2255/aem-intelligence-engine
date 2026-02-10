@@ -1,12 +1,10 @@
 package com.aem.intelligence.core.listeners;
 
-import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.api.resource.observation.ResourceChange;
 import org.apache.sling.api.resource.observation.ResourceChangeListener;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
-import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -18,7 +16,6 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -37,7 +34,6 @@ import java.util.concurrent.Executors;
 public class ContentChangeListener implements ResourceChangeListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(ContentChangeListener.class);
-    private static final Set<String> VALID_EXTENSIONS = Set.of("html", "json");
 
     @ObjectClassDefinition(name = "AEM Intelligence - Content Listener", description = "Listens for content changes and sends them to the enrichment engine.")
     public @interface Config {
