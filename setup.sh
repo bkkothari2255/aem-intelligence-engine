@@ -18,7 +18,7 @@ fi
 
 source venv_manual/bin/activate
 echo "Installing Python dependencies..."
-pip install fastapi uvicorn python-multipart chromadb sentence-transformers httpx aiofiles python-dotenv langchain-text-splitters pydantic
+pip install fastapi uvicorn python-multipart chromadb sentence-transformers httpx aiofiles python-dotenv langchain-text-splitters pydantic pandas langchain-openai
 
 # --- 2. Frontend Build (Manual Workaround) ---
 echo "\n⚛️  Building Frontend (ui.frontend)..."
