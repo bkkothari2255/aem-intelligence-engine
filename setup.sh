@@ -8,17 +8,24 @@ set -e # Exit on error
 echo "🚀 Starting AEM Intelligence Engine Setup..."
 
 # --- 1. Python Environment Setup ---
+# --- 1. Python Environment Setup ---
 echo "\n🐍 Setting up Python Environment..."
-if [ ! -d "venv_manual" ]; then
-    echo "Creating virtual environment (venv_manual)..."
-    python3.11 -m venv venv_manual
+
+if [ -d "venv" ] && [ ! -f "venv/bin/activate" ]; then
+    echo "⚠️  Found broken venv (missing activate script). Reinstalling..."
+    rm -rf venv
+fi
+
+if [ ! -d "venv" ]; then
+    echo "Creating virtual environment (venv)..."
+    python3.11 -m venv venv
 else
     echo "Virtual environment exists."
 fi
 
-source venv_manual/bin/activate
+source venv/bin/activate
 echo "Installing Python dependencies..."
-pip install fastapi uvicorn python-multipart chromadb sentence-transformers httpx aiofiles python-dotenv langchain-text-splitters pydantic pandas langchain-openai
+pip install -r requirements.txt
 
 # --- 2. Frontend Build (Manual Workaround) ---
 echo "\n⚛️  Building Frontend (ui.frontend)..."
@@ -46,6 +53,6 @@ mvn clean install -PautoInstallPackage
 echo "\n✅ Setup Complete!"
 echo "------------------------------------------------"
 echo "To start the backend service:"
-echo "  source venv_manual/bin/activate"
+echo "  source venv/bin/activate"
 echo "  python src/crawler/live_sync_service.py"
 echo "------------------------------------------------"
