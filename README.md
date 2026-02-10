@@ -40,49 +40,38 @@ It consists of an **AEM OSGi Bundle** for real-time listeners and AI integration
 
 ## ⚡ Setup & Installation
 
-### 1. Python Environment
+### 1. Unified Setup (Recommended)
 
-Initialize the Python environment for the Intelligence Engine.
+Run the unified setup script to handle Python environment, Frontend build, and AEM deployment automatically.
 
-**Automated:**
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+./setup.sh
 ```
 
-**Manual (if EPERM issues occur):**
+### 2. Manual Setup (Alternative)
+
+If you prefer to set up components individually:
+
+**Python Environment:**
 ```bash
 python3.11 -m venv venv_manual
 source venv_manual/bin/activate
 pip install fastapi uvicorn chromadb sentence-transformers python-dotenv httpx pydantic aiofiles
 ```
 
-### 2. AEM Deployment
-
-**Standard Deployment:**
+**AEM Deployment:**
 ```bash
-# Ensure AEM is running on localhost:4502
-sh .agent/skills/deploy_aem/deploy-aem.sh
-```
+# Build Frontend & Copy Artifacts
+cd aem-core/ui.frontend
+npm install --legacy-peer-deps
+npm run build
+cp dist/assets/*.js ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/clientlibs/clientlib-react/js/app.js
+cp dist/assets/*.css ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/clientlibs/clientlib-react/css/index.css
 
-**Manual Deployment (If permission errors occur):**
-1.  **Build Frontend**:
-    ```bash
-    cd aem-core/ui.frontend
-    npm install --legacy-peer-deps
-    npm run build
-    ```
-2.  **Copy Artifacts**:
-    ```bash
-    cp dist/assets/*.js ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/clientlibs/clientlib-react/js/app.js
-    cp dist/assets/*.css ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/clientlibs/clientlib-react/css/index.css
-    ```
-3.  **Deploy AEM Package**:
-    ```bash
-    cd ../ui.apps
-    mvn clean install -PautoInstallPackage
-    ```
+# Deploy to AEM
+cd ../ui.apps
+mvn clean install -PautoInstallPackage
+```
 
 ### 3. Ollama Setup
 
