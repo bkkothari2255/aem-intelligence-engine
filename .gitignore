@@ -68,3 +68,5 @@ venv_chroma/
 # Local generated files
 output.jsonl
 *.log
+chroma.sqlite3
+*.bin
