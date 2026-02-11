@@ -122,3 +122,11 @@ python src/vector_store/ingest.py
 - **Permission Errors**: If you encounter `Operation not permitted` on Mac during build, use the **Manual Deployment** steps above.
 - **Port Conflicts**: Ensure port 8000 is free or change `PORT` in `.env` (and update AEM config).
 - **Chat Not Responding**: Ensure `live_sync_service.py` is running and `Ollama` is serving content.
+
+### Python Environment Issues
+If you encounter errors related to `pydantic`, `pydantic-core`, or `ModuleNotFoundError` when running the Intelligence Layer, your virtual environment may be corrupted.
+
+Run the provided rebuild script to fix it automatically:
+```bash
+./intelligence/rebuild_venv.sh
+```
