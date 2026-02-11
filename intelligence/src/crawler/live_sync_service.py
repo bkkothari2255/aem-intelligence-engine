@@ -16,6 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from src.crawler.crawler import process_page
 # from src.vector_store.ingest import upsert_batch # Removed to avoid circular import or duplication
 from src.utils.embeddings import get_embedding_model, compute_embeddings, compute_query_embedding
+from src.vector_store.query import get_relevant_context
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -82,6 +83,9 @@ class WebhookPayload(BaseModel):
 class ChatPayload(BaseModel):
     message: str
 
+class ContextPayload(BaseModel):
+    query: str
+
 @app.post("/api/v1/chat")
 async def chat_endpoint(payload: ChatPayload):
     try:
@@ -130,6 +134,21 @@ async def chat_endpoint(payload: ChatPayload):
 
     except Exception as e:
         logger.error(f"Error in chat endpoint: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/context")
+async def context_endpoint(payload: ContextPayload):
+    try:
+        query = payload.query
+        logger.info(f"Received context request for: {query}")
+        
+        context = get_relevant_context(query)
+        
+        return {
+            "context": context
+        }
+    except Exception as e:
+        logger.error(f"Error in context endpoint: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/v1/sync")

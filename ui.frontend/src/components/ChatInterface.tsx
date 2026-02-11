@@ -46,30 +46,46 @@ export const ChatInterface = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/chat', {
+      // 1. Fetch CSRF Token
+      const tokenResponse = await fetch('/libs/granite/csrf/token.json', { credentials: 'include' });
+      const tokenData = await tokenResponse.json();
+      const csrfToken = tokenData.token;
+
+      // 2. Send Request with CSRF Token
+      const params = new URLSearchParams();
+      params.append('prompt', userMessage.content);
+
+      const response = await fetch('/bin/ollama/generate', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'CSRF-Token': csrfToken // Required for AEM POST requests
         },
-        body: JSON.stringify({ message: userMessage.content }),
+        body: params.toString(),
+        credentials: 'include'
       });
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
+        if (response.status === 403) {
+          throw new Error('Forbidden (Possible CSRF or Session issue)');
+        }
+        throw new Error(`Error: ${response.statusText} (${response.status})`);
       }
 
       const data = await response.json();
       
       const aiResponse: VerifiedMessage = { 
         role: 'assistant', 
-        content: data.content || "I didn't get a response.",
+        // Ollama returns 'response', Python returned 'content'
+        content: data.response || data.content || "I didn't get a response.",
         isStreaming: true 
       };
       
       setMessages(prev => [...prev, aiResponse]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
-      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I encountered an error connecting to the AEM Intelligence Engine." }]);
+      const errorMessage = error.message || "An unknown error occurred";
+      setMessages(prev => [...prev, { role: 'assistant', content: `Sorry, I encountered an error: ${errorMessage}` }]);
     } finally {
       setIsLoading(false);
     }
