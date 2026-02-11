@@ -17,16 +17,15 @@ It consists of an **AEM OSGi Bundle** for real-time listeners and AI integration
 
 ```
 .
-├── aem-core/               # AEM Maven Project (OSGi Bundle & UI)
-│   ├── ui.frontend/        # React Chat Application (Vite)
-│   ├── ui.apps/            # AEM ClientLibs & Components
-│   └── pom.xml             # Maven Configuration
-├── src/                    # Python Intelligence Engine
-│   ├── crawler/            # AEM Content Crawler
-│   └── vector_store/       # ChromaDB Ingestion & Querying
-├── tests/                  # Verification Scripts & Mocks
-├── requirements.txt        # Python dependencies
-└── README.md               # This file
+├── core/                   # AEM OSGi Bundle (Core)
+├── ui.frontend/            # React Chat Application (Vite)
+├── ui.apps/                # AEM ClientLibs & Components
+├── pom.xml                 # Maven Configuration
+├── intelligence/           # Python Intelligence Engine
+│   ├── src/                # Python Source Code
+│   ├── tests/              # Verification Scripts
+│   └── requirements.txt    # Python dependencies
+├── README.md               # This file
 ```
 
 ## 🛠 Prerequisites
@@ -54,6 +53,7 @@ If you prefer to set up components individually:
 
 **Python Environment:**
 ```bash
+cd intelligence
 python3.11 -m venv venv_manual
 source venv_manual/bin/activate
 pip install fastapi uvicorn chromadb sentence-transformers python-dotenv httpx pydantic aiofiles
@@ -62,7 +62,7 @@ pip install fastapi uvicorn chromadb sentence-transformers python-dotenv httpx p
 **AEM Deployment:**
 ```bash
 # Build Frontend & Copy Artifacts
-cd aem-core/ui.frontend
+cd ui.frontend
 npm install --legacy-peer-deps
 npm run build
 cp dist/assets/*.js ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/clientlibs/clientlib-react/js/app.js
@@ -87,6 +87,7 @@ ollama pull llama3.1
 ### Python Backend Service (Chat API)
 Start the backend service to handle chat requests:
 ```bash
+cd intelligence
 python src/crawler/live_sync_service.py
 ```
 *   API runs on `http://localhost:8000`.
@@ -95,6 +96,7 @@ python src/crawler/live_sync_service.py
 
 1.  **Crawl Content**: Extract content from AEM into `output.jsonl`.
     ```bash
+    cd intelligence
     python3 src/crawler/crawler.py
     ```
 
@@ -125,6 +127,7 @@ Run the test suite to ensure all components are talking to each other.
 
 ```bash
 # Verify AEM -> Python Event Flow
+cd intelligence
 python3 tests/test_content_listener.py
 
 # Verify AEM -> Ollama Bridge

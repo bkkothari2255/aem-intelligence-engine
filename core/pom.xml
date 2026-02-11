@@ -11,7 +11,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>aem-core</artifactId>
+    <artifactId>aem-intelligence-engine.core</artifactId>
     <packaging>bundle</packaging>
 
     <name>AEM Intelligence - Core</name>
@@ -103,7 +103,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Bundle-SymbolicName>com.aem.intelligence.aem-core</Bundle-SymbolicName>
+                        <Bundle-SymbolicName>com.aem.intelligence.core</Bundle-SymbolicName>
                     </instructions>
                 </configuration>
             </plugin>

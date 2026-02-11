@@ -66,6 +66,12 @@ yarn-error.log
 
 # Virtual Environments
 venv/
+intelligence/venv/
+intelligence/env/
+intelligence/.env
+intelligence/venv_manual/
+intelligence/venv_chroma/
+intelligence/chroma_db/
 env/
 ENV/
 .env

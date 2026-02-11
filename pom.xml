@@ -13,9 +13,9 @@
     <description>Root project for AEM Intelligence Engine</description>
 
     <modules>
-        <module>aem-core</module>
-        <module>aem-core/ui.frontend</module>
-        <module>aem-core/ui.apps</module>
+        <module>core</module>
+        <module>ui.frontend</module>
+        <module>ui.apps</module>
     </modules>
 
     <properties>

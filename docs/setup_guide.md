@@ -18,6 +18,7 @@ We use a virtual environment to manage dependencies.
 
 **Automated Setup:**
 ```bash
+cd intelligence
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -25,6 +26,7 @@ pip install -r requirements.txt
 
 **Manual Setup (If EPERM issues occur):**
 ```bash
+cd intelligence
 python3.11 -m venv venv_manual
 source venv_manual/bin/activate
 pip install fastapi uvicorn python-multipart chromadb sentence-transformers httpx aiofiles python-dotenv langchain-text-splitters pydantic
@@ -40,13 +42,13 @@ sh .agent/skills/deploy_aem/deploy-aem.sh
 **Manual Deployment (If permission errors occur):**
 1.  **Build Frontend**:
     ```bash
-    cd aem-core/ui.frontend
+    cd ui.frontend
     npm install --legacy-peer-deps
     npm run build
     ```
 2.  **Copy Artifacts Manually**:
     ```bash
-    # Run from aem-core/ui.frontend
+    # Run from ui.frontend
     cp dist/assets/*.js ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/clientlibs/clientlib-react/js/app.js
     cp dist/assets/*.css ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/clientlibs/clientlib-react/css/index.css
     ```
@@ -86,6 +88,7 @@ This service handles Chat API requests and Real-Time sync.
 
 ```bash
 # Activate your venv first
+cd intelligence
 source venv_manual/bin/activate  # or venv/bin/activate
 python src/crawler/live_sync_service.py
 ```
