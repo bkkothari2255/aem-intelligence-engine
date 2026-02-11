@@ -13,6 +13,31 @@ It consists of an **AEM OSGi Bundle** for real-time listeners and AI integration
 *   **Intelligent Chat UI**: A React Spectrum-based chat interface embedded in AEM that streams RAG responses from the Intelligence Engine.
 *   **RAG Ready**: Infrastructure to support Retrieval-Augmented Generation by combining AEM content with LLM capabilities.
 
+## 📅 Roadmap
+
+### Sprint 1: Foundation (Completed)
+- [x] **Project Structure**: Multi-module Maven project with Python Intelligence Engine.
+- [x] **Core Services**: AEM-Python Event listener, Ollama Bridge Servlet.
+- [x] **Vector Database**: ChromaDB integration with `sentence-transformers`.
+- [x] **Basic UI**: Embedded React Chat Interface.
+- [x] **Security**: Author-only access control for AI endpoints.
+
+### Sprint 2: The Enrichment Pipeline (Completed)
+- [x] **Recursive Character Splitting**: Implemented chunking with 650/65 overlap.
+- [x] **Multi-Model Vectorization**: Support for `all-MiniLM-L12-v2` and `text-embeddings-ada-002`.
+- [x] **Dispatcher Log Analysis**: Pandas-based log analysis for high-traffic paths and errors.
+- [x] **Embedding Storage**: Automated ChromaDB ingestion.
+
+### Sprint 3: Advanced RAG & UI (Upcoming)
+- [ ] **Context-Aware Retrieval**: Chat history support.
+- [ ] **Admin Dashboard**: AEM UI for managing vector embeddings and indexing status.
+- [ ] **Feedback Loop**: User feedback mechanism for chat responses.
+
+### Future Features
+- [ ] **Voice Interface**: Speech-to-Text and Text-to-Speech integration.
+- [ ] **Personalization**: User-specific context and recommendations.
+- [ ] **Cloud Deployment**: Docker/Kubernetes support for the Python layer.
+
 ## 📂 Project Structure
 
 ```
