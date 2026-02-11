@@ -82,7 +82,14 @@ cp dist/assets/*.css ../ui.apps/src/main/content/jcr_root/apps/aem-intelligence/
 cd ..
 
 # --- 3. AEM Deployment ---
-echo "\n📦 Deploying to AEM (ui.apps)..."
+echo "\n📦 Deploying to AEM..."
+
+echo ">> Deploying Core Bundle..."
+cd core
+mvn clean install -PautoInstallPackage
+cd ..
+
+echo ">> Deploying UI Apps..."
 cd ui.apps
 mvn clean install -PautoInstallPackage
 

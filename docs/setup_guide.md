@@ -84,6 +84,16 @@ Configure AEM to send events to the Python service.
 ## 3. Usage
 
 ### Starting the Intelligence Service
+
+**Option 1: Background Service (Recommended)**
+```bash
+./manage-backend.sh start    # Start service
+./manage-backend.sh stop     # Stop service
+./manage-backend.sh status   # Check status
+./manage-backend.sh tail     # View logs
+```
+
+**Option 2: Manual Start (Debug Mode)**
 This service handles Chat API requests and Real-Time sync.
 
 ```bash

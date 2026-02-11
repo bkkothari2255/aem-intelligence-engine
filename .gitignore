@@ -84,3 +84,4 @@ output.jsonl
 *.log
 chroma.sqlite3
 *.bin
+*.pid
