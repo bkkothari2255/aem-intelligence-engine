@@ -18,7 +18,7 @@ function mountChatInterface() {
     
     ReactDOM.createRoot(rootElement).render(
       <React.StrictMode>
-        <Provider theme={defaultTheme}>
+        <Provider theme={defaultTheme} colorScheme="light">
           <App />
         </Provider>
       </React.StrictMode>,

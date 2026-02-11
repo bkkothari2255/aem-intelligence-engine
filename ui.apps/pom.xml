@@ -27,7 +27,7 @@
                 <configuration>
                     <group>com.aem.intelligence</group>
                     <name>aem-intelligence-engine.ui.apps</name>
-                    <packageType>application</packageType>
+                    <packageType>mixed</packageType>
                     <properties>
                         <cloudManagerTarget>none</cloudManagerTarget>
                     </properties>
