@@ -3,8 +3,9 @@
 # AEM Intelligence Engine - Backend Manager
 # Usage: ./manage-backend.sh [start|stop|restart|status|tail]
 
-PID_FILE="intelligence/backend.pid"
-LOG_FILE="intelligence/backend.log"
+BASE_DIR=$(cd "$(dirname "$0")"; pwd)
+PID_FILE="$BASE_DIR/intelligence/backend.pid"
+LOG_FILE="$BASE_DIR/intelligence/backend.log"
 SERVICE_SCRIPT="src/crawler/live_sync_service.py"
 
 function start_service() {
@@ -23,12 +24,13 @@ function start_service() {
     source venv/bin/activate
     
     # Run in background with nohup
-    nohup python "$SERVICE_SCRIPT" > backend.log 2>&1 &
+    # nohup python "$SERVICE_SCRIPT" > backend.log 2>&1 &
+    nohup uvicorn src.crawler.live_sync_service:app --host 0.0.0.0 --port 8000 --reload > "$LOG_FILE" 2>&1 &
     
     PID=$!
-    echo $PID > backend.pid
+    echo $PID > "$PID_FILE"
     echo "✅ Service started with PID: $PID"
-    echo "📜 Logs: intelligence/backend.log"
+    echo "📜 Logs: $LOG_FILE"
 }
 
 function stop_service() {
