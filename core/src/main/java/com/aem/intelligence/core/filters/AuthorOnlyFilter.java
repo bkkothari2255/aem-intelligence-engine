@@ -98,9 +98,16 @@ public class AuthorOnlyFilter implements Filter {
 
     private boolean isAllowed(Authorizable user) {
         try {
+            String userId = user.getID();
+
             // Default allowed groups if config is missing (safety net)
             String[] allowedGroups = (config != null) ? config.allowedGroups() : new String[]{"authors", "administrators"};
             
+            // Explicitly allow admin
+            if ("admin".equals(userId)) {
+                return true;
+            }
+
             Iterator<Group> groups = user.memberOf();
             while (groups.hasNext()) {
                 Group group = groups.next();
