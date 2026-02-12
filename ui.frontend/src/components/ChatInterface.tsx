@@ -27,6 +27,7 @@ export const ChatInterface = () => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<VerifiedMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [serviceStatus, setServiceStatus] = useState({ python: false, ollama: false });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -36,6 +37,27 @@ export const ChatInterface = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Health Check Polling
+  useEffect(() => {
+    const checkHealth = async () => {
+        try {
+            const response = await fetch('/bin/ollama/generate');
+            if (response.ok) {
+                const data = await response.json();
+                setServiceStatus({ python: data.python, ollama: data.ollama });
+            } else {
+                setServiceStatus({ python: false, ollama: false });
+            }
+        } catch (e) {
+            setServiceStatus({ python: false, ollama: false });
+        }
+    };
+
+    checkHealth(); // Initial check
+    const interval = setInterval(checkHealth, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -59,7 +81,7 @@ export const ChatInterface = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'CSRF-Token': csrfToken // Required for AEM POST requests
+          'CSRF-Token': csrfToken
         },
         body: params.toString(),
         credentials: 'include'
@@ -72,16 +94,46 @@ export const ChatInterface = () => {
         throw new Error(`Error: ${response.statusText} (${response.status})`);
       }
 
-      const data = await response.json();
+      if (!response.body) {
+        throw new Error('No response body received');
+      }
+
+      // 3. Handle Streaming Response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = "";
       
-      const aiResponse: VerifiedMessage = { 
-        role: 'assistant', 
-        // Ollama returns 'response', Python returned 'content'
-        content: data.response || data.content || "I didn't get a response.",
-        isStreaming: true 
-      };
-      
-      setMessages(prev => [...prev, aiResponse]);
+      // Initialize assistant message
+      setMessages(prev => [...prev, { role: 'assistant', content: '', isStreaming: false }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const data = JSON.parse(line);
+            if (data.response) {
+              assistantContent += data.response;
+              // Update the last message in state
+              setMessages(prev => {
+                const newMessages = [...prev];
+                const last = newMessages[newMessages.length - 1];
+                if (last && last.role === 'assistant') {
+                  newMessages[newMessages.length - 1] = { ...last, content: assistantContent };
+                }
+                return newMessages;
+              });
+            }
+          } catch (e) {
+            console.debug('Skip partial chunk parsing error');
+          }
+        }
+      }
     } catch (error: any) {
       console.error('Error sending message:', error);
       const errorMessage = error.message || "An unknown error occurred";
@@ -123,11 +175,25 @@ export const ChatInterface = () => {
   return (
     <Flex direction="column" height="600px" width="100%" gap="size-100" UNSAFE_style={{ border: '1px solid #e0e0e0', borderRadius: '8px', backgroundColor: 'white', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
       <Header>
-        <Flex alignItems="center" gap="size-100" marginX="size-200" marginTop="size-200">
-            <View backgroundColor="blue-600" padding="size-50" borderRadius="medium">
-                <Globe size="L" UNSAFE_style={{ color: 'white' }} />
-            </View>
-            <Heading level={2}>AEM Intelligence</Heading>
+        <Flex alignItems="center" gap="size-100" marginX="size-200" marginTop="size-200" justifyContent="space-between">
+            <Flex alignItems="center" gap="size-100">
+                <View backgroundColor="blue-600" padding="size-50" borderRadius="medium">
+                    <Globe size="L" UNSAFE_style={{ color: 'white' }} />
+                </View>
+                <Heading level={2}>AEM Intelligence</Heading>
+            </Flex>
+            
+            {/* Status Indicators */}
+            <Flex gap="size-200" alignItems="center">
+                <Flex alignItems="center" gap="size-50">
+                    <span className={`status-dot ${serviceStatus.python ? 'green' : 'red'}`}></span>
+                    <Text UNSAFE_style={{ fontSize: '12px', color: '#666' }}>Python</Text>
+                </Flex>
+                <Flex alignItems="center" gap="size-50">
+                    <span className={`status-dot ${serviceStatus.ollama ? 'green' : 'red'}`}></span>
+                    <Text UNSAFE_style={{ fontSize: '12px', color: '#666' }}>Ollama</Text>
+                </Flex>
+            </Flex>
         </Flex>
         <Divider size="S" marginY="size-100" />
       </Header>

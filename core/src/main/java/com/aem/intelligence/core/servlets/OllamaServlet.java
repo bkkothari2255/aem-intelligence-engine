@@ -25,7 +25,7 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 @Component(service = Servlet.class, property = {
     "sling.servlet.paths=/bin/ollama/generate",
-    "sling.servlet.methods=POST"
+    "sling.servlet.methods={POST, GET}"
 })
 @Designate(ocd = OllamaServlet.Config.class)
 public class OllamaServlet extends SlingAllMethodsServlet {
@@ -52,6 +52,8 @@ public class OllamaServlet extends SlingAllMethodsServlet {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
+    private static final String APPLICATION_JSON = "application/json";
+
     @Activate
     protected void activate(Config config) {
         this.ollamaUrl = config.ollama_url();
@@ -61,8 +63,47 @@ public class OllamaServlet extends SlingAllMethodsServlet {
     }
 
     @Override
+    protected void doGet(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
+        response.setContentType(APPLICATION_JSON);
+        response.setCharacterEncoding("UTF-8");
+
+        // Refined approach:
+        // Python: http://localhost:8000/docs or just / (FastAPI usually has docs)
+        // Ollama: http://localhost:11434/ (Ollama returns "Ollama is running")
+
+        String ollamaBaseUrl = this.ollamaUrl.replace("/api/generate", "");
+        String pythonBaseUrl = this.pythonGatewayUrl.replace("/api/v1/context", "");
+
+        boolean ollamaUp = checkUrl(ollamaBaseUrl);
+        boolean pythonUp = checkUrl(pythonBaseUrl);
+
+        JsonObject json = new JsonObject();
+        json.addProperty("python", pythonUp);
+        json.addProperty("ollama", ollamaUp);
+        
+        response.getWriter().write(json.toString());
+    }
+
+    private boolean checkUrl(String url) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(2))
+                    .GET()
+                    .build();
+            HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+            return response.statusCode() >= 200 && response.statusCode() < 500; 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
     protected void doPost(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException {
-        response.setContentType("application/json");
+        response.setContentType(APPLICATION_JSON);
         response.setCharacterEncoding("UTF-8");
 
         String prompt = request.getParameter("prompt");
@@ -71,8 +112,6 @@ public class OllamaServlet extends SlingAllMethodsServlet {
             response.getWriter().write("{\"error\": \"Prompt parameter is required\"}");
             return;
         }
-
-        long startTime = System.currentTimeMillis();
 
         try {
             // 1. Fetch Context from Python Intelligence Layer
@@ -85,7 +124,7 @@ public class OllamaServlet extends SlingAllMethodsServlet {
                 HttpRequest contextRequest = HttpRequest.newBuilder()
                         .uri(URI.create(this.pythonGatewayUrl))
                         .timeout(Duration.ofSeconds(30))
-                        .header("Content-Type", "application/json")
+                        .header("Content-Type", APPLICATION_JSON)
                         .POST(HttpRequest.BodyPublishers.ofString(contextPayload.toString(), StandardCharsets.UTF_8))
                         .build();
 
@@ -94,50 +133,56 @@ public class OllamaServlet extends SlingAllMethodsServlet {
                 LOG.info("Python Context call took {} ms", pythonDuration);
                 
                 if (contextResponse.statusCode() == 200) {
-                     // Simple JSON parsing using Gson (compatible with older versions)
                      JsonObject responseJson = new com.google.gson.JsonParser().parse(contextResponse.body()).getAsJsonObject();
                      if (responseJson.has("context")) {
                          retrievedContext = responseJson.get("context").getAsString();
                      }
-                } else {
-                    LOG.warn("Python Gateway returned error: {}", contextResponse.statusCode());
                 }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw e; // Re-throw to be caught by outer block or handled
             } catch (Exception e) {
                 LOG.error("Failed to fetch context from Python layer", e);
-                // Continue without context
             }
 
             // 2. Construct RAG Prompt
             String systemPrompt;
             if (retrievedContext != null && !retrievedContext.isEmpty()) {
                 systemPrompt = String.format(
-                    "You are an AEM Expert. Use the following context from the WKND site to answer the question concisely. If the answer isn't in the context, say you don't know.%n%n Context: %s %n%n Question: %s", 
+                    "You are an AEM Expert. Use the following context from the WKND site to answer the question concisely. If the answer isn't in the context, say you don't know.%%n%%n Context: %s %%n%%n Question: %s", 
                     retrievedContext, prompt
                 );
             } else {
-                systemPrompt = prompt; // Fallback to raw prompt
+                systemPrompt = prompt;
             }
 
-            // 3. Call Ollama
-            long ollamaStart = System.currentTimeMillis();
+            // 3. Call Ollama with Streaming
             JsonObject requestPayload = new JsonObject();
             requestPayload.addProperty("model", this.modelName);
             requestPayload.addProperty("prompt", systemPrompt);
-            requestPayload.addProperty("stream", false);
+            requestPayload.addProperty("stream", true); // Enable streaming
 
             HttpRequest httpRequest = HttpRequest.newBuilder()
                     .uri(URI.create(this.ollamaUrl))
                     .timeout(Duration.ofMinutes(5))
-                    .header("Content-Type", "application/json")
+                    .header("Content-Type", APPLICATION_JSON)
                     .POST(HttpRequest.BodyPublishers.ofString(requestPayload.toString(), StandardCharsets.UTF_8))
                     .build();
 
-            HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            long ollamaDuration = System.currentTimeMillis() - ollamaStart;
-            LOG.info("Ollama call took {} ms. Total duration: {} ms", ollamaDuration, (System.currentTimeMillis() - startTime));
+            // Set response type for streaming (NDJSON)
+            response.setContentType("application/x-ndjson");
+            
+            HttpResponse<java.io.InputStream> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
 
             if (httpResponse.statusCode() == 200) {
-                response.getWriter().write(httpResponse.body());
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(httpResponse.body(), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.getWriter().write(line + "\n");
+                        response.getWriter().flush(); // Send chunk to client
+                    }
+                }
+                LOG.info("Streaming complete for prompt: {}", prompt);
             } else {
                 LOG.error("Ollama API failed with status: {}", httpResponse.statusCode());
                 response.setStatus(502);
@@ -147,8 +192,6 @@ public class OllamaServlet extends SlingAllMethodsServlet {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             LOG.error("Interrupted while calling Ollama", e);
-            response.setStatus(500);
-            response.getWriter().write("{\"error\": \"Internal Server Error\"}");
         } catch (Exception e) {
             LOG.error("Error calling Ollama", e);
             response.setStatus(500);
